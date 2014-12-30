@@ -76,6 +76,14 @@ build_github_friction = ->
   console.log('build')
   if get_cookie 'access_token'
     console.log('got access token')
+    github = new Github(
+      token: get_cookie('access_token')
+      auth: 'oauth'
+    )
+    user = github.getUser()
+    user.repos((err, repos) ->
+      console.log(repos.map (repo) -> repo.name)
+    )
   else
     console.log('redirecting to oauth')
     window.location = github_oauth_url()

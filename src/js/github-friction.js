@@ -104,9 +104,20 @@
   };
 
   build_github_friction = function() {
+    var github, user;
     console.log('build');
     if (get_cookie('access_token')) {
-      return console.log('got access token');
+      console.log('got access token');
+      github = new Github({
+        token: get_cookie('access_token'),
+        auth: 'oauth'
+      });
+      user = github.getUser();
+      return user.repos(function(err, repos) {
+        return console.log(repos.map(function(repo) {
+          return repo.name;
+        }));
+      });
     } else {
       console.log('redirecting to oauth');
       return window.location = github_oauth_url();

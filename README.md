@@ -2,3 +2,7 @@ github-friction
 ===============
 
 Check for common sources of contributor friction across your GitHub repositories.
+
+Inspired by [Flint](https://github.com/pengwynn/flint) and [Friction](https://github.com/rafalchmiel/friction).
+
+Uses [Github.js](https://github.com/michael/github) and [Gatekeeper](https://github.com/prose/gatekeeper).
