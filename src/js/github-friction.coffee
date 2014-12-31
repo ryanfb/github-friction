@@ -5,6 +5,43 @@ github_friction_oauth =
 github_oauth_url = ->
   "https://github.com/login/oauth/authorize?#{$.param(github_friction_oauth)}"
 
+friction_checks =
+  readme:
+    path: '/'
+    regex: /README/
+    name: 'README'
+    info: 'Every project begins with a README.'
+    url: 'http://bit.ly/1dqUYQF'
+    critical: true
+  contributing:
+    path: '/'
+    regex: /CONTRIBUTING/
+    name: 'CONTRIBUTING guide'
+    info: 'Add a guide for potential contributors.'
+    url: 'http://git.io/z-TiGg'
+    critical: true
+  license:
+    path: '/'
+    regex: /LICENSE/
+    name: 'LICENSE'
+    info: 'Add a license to protect yourself and your users.'
+    url: 'http://choosealicense.com/'
+    critical: true
+  testscript:
+    path: '/script'
+    regex: /test/
+    name: 'Test script'
+    info: 'Make it easy to run the test suite regardless of project type.'
+    url: 'http://bit.ly/JZjVL6'
+    critical: false
+  bootstrap:
+    path: '/script'
+    regex: /bootstrap/
+    name: 'Bootstrap script'
+    info: 'A bootstrap script makes setup a snap.'
+    url: 'http://bit.ly/JZjVL6'
+    critical: false
+
 # filter URL parameters out of the window URL using replaceState 
 # returns the original parameters
 get_auth_code = ->
@@ -72,17 +109,49 @@ set_cookie_expiration_callback = ->
         window.location.reload()
       ), expires_in
 
+check_friction = (repo, branch) ->
+  console.log("check_friction for #{branch}")
+  console.log(repo)
+  repo.getTree branch, (err, tree) ->
+    console.log(tree)
+    (tree.filter (git_object) -> git_object.type == 'blob').map (blob) ->
+      for name, friction_check of friction_checks
+        if (friction_check.path == '/') && friction_check.regex.test(blob.path)
+          console.log("#{blob.path} hit for #{name}")
+    script_directory = (tree.filter (git_object) -> (git_object.type == 'tree') && (git_object.path == 'script'))[0]
+    if script_directory
+      repo.getTree script_directory.sha, (err, script_tree) ->
+        console.log "script"
+        console.log script_tree
+        (script_tree.filter (git_object) -> git_object.type == 'blob').map (blob) ->
+          for name, friction_check of friction_checks
+            if (friction_check.path == '/script') && friction_check.regex.test(blob.path)
+              console.log("#{blob.path} hit for #{name}")
+    else
+      console.log('no script directory')
+
 build_github_friction = ->
   console.log('build')
   if get_cookie 'access_token'
     console.log('got access token')
+    repo_list = $('<ul>').attr('id','repo_list')
+    $(document.body).append(repo_list)
     github = new Github(
       token: get_cookie('access_token')
       auth: 'oauth'
     )
     user = github.getUser()
     user.repos((err, repos) ->
-      console.log(repos.map (repo) -> repo.name)
+      repos.map (repo) ->
+        console.log(repo)
+        $('#repo_list').append($('<li>').text(repo.name))
+        github.getRepo(repo.owner.login, repo.name).listBranches (err, branches) =>
+          console.log(repo.name)
+          console.log(branches)
+          if 'master' in branches
+            check_friction(github.getRepo(repo.owner.login, repo.name), 'master')
+          else
+            check_friction(github.getRepo(repo.owner.login, repo.name), branches[0])
     )
   else
     console.log('redirecting to oauth')
