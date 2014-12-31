@@ -1,3 +1,5 @@
+github_friction_debug = false
+
 github_friction_oauth =
   client_id: 'f066b4cdf3404200113c'
   redirect_uri: 'http://localhost:4000/'
@@ -77,13 +79,13 @@ get_cookie = (key) ->
 
 # write a GitHub OAuth access token into a cached cookie
 set_access_token_cookie = (params, callback) ->
-  console.log('set_access_token_cookie')
-  console.log(params)
+  console.log('set_access_token_cookie') if github_friction_debug
+  console.log(params) if github_friction_debug
   if params['state']?
-    console.log "Replacing hash with state: #{params['state']}"
+    console.log "Replacing hash with state: #{params['state']}" if github_friction_debug
     history.replaceState(null,'',window.location.href.replace("#{location.hash}","##{params['state']}"))
   if params['code']?
-    console.log('got code')
+    console.log('got code') if github_friction_debug
     # use gatekeeper to exchange code for token https://github.com/prose/gatekeeper
     $.ajax "https://github-friction-gatekeeper.herokuapp.com/authenticate/#{params['code']}",
       type: 'GET'
@@ -92,10 +94,10 @@ set_access_token_cookie = (params, callback) ->
       error: (jqXHR, textStatus, errorThrown) ->
         console.log "Access Token Exchange Error: #{textStatus}"
       success: (data) ->
-        console.log('gatekeeper success')
-        console.log(data)
+        console.log('gatekeeper success') if github_friction_debug
+        console.log(data) if github_friction_debug
         set_cookie('access_token',data.token,31536000)
-        set_cookie('access_token_expires_at',expires_in_to_date(params['expires_in']).getTime(),params['expires_in'])
+        set_cookie('access_token_expires_at',expires_in_to_date(31536000))
         callback() if callback?
   else
     callback() if callback?
@@ -103,7 +105,7 @@ set_access_token_cookie = (params, callback) ->
 set_cookie_expiration_callback = ->
   if get_cookie('access_token_expires_at')
     expires_in = get_cookie('access_token_expires_at') - (new Date()).getTime()
-    console.log(expires_in)
+    console.log(expires_in) if github_friction_debug
     setTimeout ( ->
         console.log("cookie expired")
         window.location.reload()
@@ -139,37 +141,37 @@ mark_done = (repo_id, name, file_name) ->
 
 
 check_friction = (repo_id, repo, branch) ->
-  console.log("check_friction for #{branch} of #{repo_id}")
+  console.log("check_friction for #{branch} of #{repo_id}") if github_friction_debug
   # repo.show (err, github_repo) ->
   #  console.log('repo.show')
   #  console.log(github_repo)
   repo.getTree branch, (err, tree) ->
-    console.log(tree)
+    console.log(tree) if github_friction_debug
     (tree.filter (git_object) -> git_object.type == 'blob').map (blob) ->
       for name, friction_check of friction_checks
         if (friction_check.path == '/') && friction_check.regex.test(blob.path)
-          console.log("#{blob.path} hit for #{name}")
-          console.log(blob)
+          console.log("#{blob.path} hit for #{name}") if github_friction_debug
+          console.log(blob) if github_friction_debug
           mark_done(repo_id,name,blob.path)
     script_directory = (tree.filter (git_object) -> (git_object.type == 'tree') && (git_object.path == 'script'))[0]
     if script_directory
       repo.getTree script_directory.sha, (err, script_tree) ->
-        console.log "script"
-        console.log script_tree
+        console.log "script" if github_friction_debug
+        console.log script_tree if github_friction_debug
         (script_tree.filter (git_object) -> git_object.type == 'blob').map (blob) ->
           for name, friction_check of friction_checks
             if (friction_check.path == '/script') && friction_check.regex.test(blob.path)
-              console.log("#{blob.path} hit for #{name}")
+              console.log("#{blob.path} hit for #{name}") if github_friction_debug
               mark_done(repo_id,name,"script/#{blob.path}")
         mark_missing(repo_id)
     else
-      console.log("no script directory for #{repo_id}")
+      console.log("no script directory for #{repo_id}") if github_friction_debug
       mark_missing(repo_id)
 
 build_github_friction = ->
-  console.log('build')
+  console.log('build') if github_friction_debug
   if get_cookie 'access_token'
-    console.log('got access token')
+    console.log('got access token') if github_friction_debug
     repo_list = $('<table>').attr('id','repo_list').attr('class','table table-bordered')
     container = $('<div>').attr('class','container')
     container.append($('<br>'))
@@ -186,7 +188,7 @@ build_github_friction = ->
     user = github.getUser()
     user.repos((err, repos) ->
       repos.map (repo) ->
-        console.log(repo)
+        console.log(repo) if github_friction_debug
         repo_row = $('<tr>').attr('id',repo.id)
         repo_link = $('<a>').attr('href',repo.html_url).text(repo.full_name).attr('target','_blank')
         repo_div = $('<td>').addClass('name').append(repo_link)
@@ -196,8 +198,8 @@ build_github_friction = ->
           repo_row.append($('<td>').attr('class','info text-center').text(friction_check.name).addClass(name))
         $('#repo_list').append(repo_row)
         github.getRepo(repo.owner.login, repo.name).listBranches (err, branches) =>
-          console.log(repo.name)
-          console.log(branches)
+          console.log(repo.name) if github_friction_debug
+          console.log(branches) if github_friction_debug
           if 'master' in branches
             check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), 'master')
           else
@@ -205,10 +207,10 @@ build_github_friction = ->
             check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), branches[0])
     )
   else
-    console.log('redirecting to oauth')
+    console.log('redirecting to oauth') if github_friction_debug
     window.location = github_oauth_url()
 
 # main driver entry point
 $(document).ready ->
-  console.log('ready')
+  console.log('ready') if github_friction_debug
   set_access_token_cookie(get_auth_code(),build_github_friction)
