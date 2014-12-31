@@ -118,9 +118,25 @@ mark_missing = (repo_id) ->
         data_cell.addClass('danger')
       else
         data_cell.addClass('warning')
+      link = $('<a>').attr('href',friction_check.url)
+      link.attr('title',friction_check.info)
+      link.attr('target','_blank')
+      link.text(friction_check.name)
+      data_cell.text('')
+      data_cell.append(link)
 
-mark_done = (repo_id, name) ->
-  $("##{repo_id} > .#{name}").removeClass('info').addClass('success')
+mark_done = (repo_id, name, file_name) ->
+  data_cell = $("##{repo_id} > .#{name}")
+  data_cell.removeClass('info').addClass('success')
+  link = $('<a>')
+  repo_url = $("##{repo_id} > .name > a").attr('href')
+  branch = $("##{repo_id} > .branch").text()
+  link.attr('href',"#{repo_url}/blob/#{branch}/#{file_name}")
+  link.attr('target','_blank')
+  link.text(data_cell.text())
+  data_cell.text('')
+  data_cell.append(link)
+
 
 check_friction = (repo_id, repo, branch) ->
   console.log("check_friction for #{branch} of #{repo_id}")
@@ -133,7 +149,8 @@ check_friction = (repo_id, repo, branch) ->
       for name, friction_check of friction_checks
         if (friction_check.path == '/') && friction_check.regex.test(blob.path)
           console.log("#{blob.path} hit for #{name}")
-          mark_done(repo_id,name)
+          console.log(blob)
+          mark_done(repo_id,name,blob.path)
     script_directory = (tree.filter (git_object) -> (git_object.type == 'tree') && (git_object.path == 'script'))[0]
     if script_directory
       repo.getTree script_directory.sha, (err, script_tree) ->
@@ -143,7 +160,7 @@ check_friction = (repo_id, repo, branch) ->
           for name, friction_check of friction_checks
             if (friction_check.path == '/script') && friction_check.regex.test(blob.path)
               console.log("#{blob.path} hit for #{name}")
-              mark_done(repo_id,name)
+              mark_done(repo_id,name,"script/#{blob.path}")
         mark_missing(repo_id)
     else
       console.log("no script directory for #{repo_id}")

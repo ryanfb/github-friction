@@ -148,7 +148,7 @@
   };
 
   mark_missing = function(repo_id) {
-    var data_cell, friction_check, name, _results;
+    var data_cell, friction_check, link, name, _results;
     _results = [];
     for (name in friction_checks) {
       friction_check = friction_checks[name];
@@ -156,10 +156,16 @@
       if (data_cell.hasClass('info')) {
         data_cell.removeClass('info');
         if (friction_check.critical) {
-          _results.push(data_cell.addClass('danger'));
+          data_cell.addClass('danger');
         } else {
-          _results.push(data_cell.addClass('warning'));
+          data_cell.addClass('warning');
         }
+        link = $('<a>').attr('href', friction_check.url);
+        link.attr('title', friction_check.info);
+        link.attr('target', '_blank');
+        link.text(friction_check.name);
+        data_cell.text('');
+        _results.push(data_cell.append(link));
       } else {
         _results.push(void 0);
       }
@@ -167,8 +173,18 @@
     return _results;
   };
 
-  mark_done = function(repo_id, name) {
-    return $("#" + repo_id + " > ." + name).removeClass('info').addClass('success');
+  mark_done = function(repo_id, name, file_name) {
+    var branch, data_cell, link, repo_url;
+    data_cell = $("#" + repo_id + " > ." + name);
+    data_cell.removeClass('info').addClass('success');
+    link = $('<a>');
+    repo_url = $("#" + repo_id + " > .name > a").attr('href');
+    branch = $("#" + repo_id + " > .branch").text();
+    link.attr('href', "" + repo_url + "/blob/" + branch + "/" + file_name);
+    link.attr('target', '_blank');
+    link.text(data_cell.text());
+    data_cell.text('');
+    return data_cell.append(link);
   };
 
   check_friction = function(repo_id, repo, branch) {
@@ -185,7 +201,8 @@
           friction_check = friction_checks[name];
           if ((friction_check.path === '/') && friction_check.regex.test(blob.path)) {
             console.log("" + blob.path + " hit for " + name);
-            _results.push(mark_done(repo_id, name));
+            console.log(blob);
+            _results.push(mark_done(repo_id, name, blob.path));
           } else {
             _results.push(void 0);
           }
@@ -208,7 +225,7 @@
               friction_check = friction_checks[name];
               if ((friction_check.path === '/script') && friction_check.regex.test(blob.path)) {
                 console.log("" + blob.path + " hit for " + name);
-                _results.push(mark_done(repo_id, name));
+                _results.push(mark_done(repo_id, name, "script/" + blob.path));
               } else {
                 _results.push(void 0);
               }
