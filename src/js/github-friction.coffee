@@ -8,35 +8,35 @@ github_oauth_url = ->
 friction_checks =
   readme:
     path: '/'
-    regex: /README/
+    regex: /^README/
     name: 'README'
     info: 'Every project begins with a README.'
     url: 'http://bit.ly/1dqUYQF'
     critical: true
   contributing:
     path: '/'
-    regex: /CONTRIBUTING/
+    regex: /^CONTRIBUTING/
     name: 'CONTRIBUTING guide'
     info: 'Add a guide for potential contributors.'
     url: 'http://git.io/z-TiGg'
     critical: true
   license:
     path: '/'
-    regex: /LICENSE/
+    regex: /^LICENSE/
     name: 'LICENSE'
     info: 'Add a license to protect yourself and your users.'
     url: 'http://choosealicense.com/'
     critical: true
   testscript:
     path: '/script'
-    regex: /test/
+    regex: /^test/
     name: 'Test script'
     info: 'Make it easy to run the test suite regardless of project type.'
     url: 'http://bit.ly/JZjVL6'
     critical: false
   bootstrap:
     path: '/script'
-    regex: /bootstrap/
+    regex: /^bootstrap/
     name: 'Bootstrap script'
     info: 'A bootstrap script makes setup a snap.'
     url: 'http://bit.ly/JZjVL6'
@@ -109,15 +109,31 @@ set_cookie_expiration_callback = ->
         window.location.reload()
       ), expires_in
 
-check_friction = (repo, branch) ->
-  console.log("check_friction for #{branch}")
-  console.log(repo)
+mark_missing = (repo_id) ->
+  for name, friction_check of friction_checks
+    data_cell = $("##{repo_id} > .#{name}")
+    if data_cell.hasClass('info')
+      data_cell.removeClass('info')
+      if friction_check.critical
+        data_cell.addClass('danger')
+      else
+        data_cell.addClass('warning')
+
+mark_done = (repo_id, name) ->
+  $("##{repo_id} > .#{name}").removeClass('info').addClass('success')
+
+check_friction = (repo_id, repo, branch) ->
+  console.log("check_friction for #{branch} of #{repo_id}")
+  # repo.show (err, github_repo) ->
+  #  console.log('repo.show')
+  #  console.log(github_repo)
   repo.getTree branch, (err, tree) ->
     console.log(tree)
     (tree.filter (git_object) -> git_object.type == 'blob').map (blob) ->
       for name, friction_check of friction_checks
         if (friction_check.path == '/') && friction_check.regex.test(blob.path)
           console.log("#{blob.path} hit for #{name}")
+          mark_done(repo_id,name)
     script_directory = (tree.filter (git_object) -> (git_object.type == 'tree') && (git_object.path == 'script'))[0]
     if script_directory
       repo.getTree script_directory.sha, (err, script_tree) ->
@@ -127,15 +143,25 @@ check_friction = (repo, branch) ->
           for name, friction_check of friction_checks
             if (friction_check.path == '/script') && friction_check.regex.test(blob.path)
               console.log("#{blob.path} hit for #{name}")
+              mark_done(repo_id,name)
+        mark_missing(repo_id)
     else
-      console.log('no script directory')
+      console.log("no script directory for #{repo_id}")
+      mark_missing(repo_id)
 
 build_github_friction = ->
   console.log('build')
   if get_cookie 'access_token'
     console.log('got access token')
-    repo_list = $('<ul>').attr('id','repo_list')
-    $(document.body).append(repo_list)
+    repo_list = $('<table>').attr('id','repo_list').attr('class','table table-bordered')
+    container = $('<div>').attr('class','container')
+    container.append($('<br>'))
+    jumbotron = $('<div>') #.attr('class','jumbotron')
+    jumbotron.append($('<h1>').text('GitHub Friction'))
+    jumbotron.append($('<p>').attr('class','lead').text('Check for common sources of contributor friction across your GitHub repositories.'))
+    container.append(jumbotron)
+    container.append(repo_list)
+    $(document.body).append(container)
     github = new Github(
       token: get_cookie('access_token')
       auth: 'oauth'
@@ -144,14 +170,22 @@ build_github_friction = ->
     user.repos((err, repos) ->
       repos.map (repo) ->
         console.log(repo)
-        $('#repo_list').append($('<li>').text(repo.name))
+        repo_row = $('<tr>').attr('id',repo.id)
+        repo_link = $('<a>').attr('href',repo.html_url).text(repo.full_name).attr('target','_blank')
+        repo_div = $('<td>').addClass('name').append(repo_link)
+        repo_row.append(repo_div)
+        repo_row.append($('<td>').attr('class','active text-center').text('master').addClass('branch'))
+        for name, friction_check of friction_checks
+          repo_row.append($('<td>').attr('class','info text-center').text(friction_check.name).addClass(name))
+        $('#repo_list').append(repo_row)
         github.getRepo(repo.owner.login, repo.name).listBranches (err, branches) =>
           console.log(repo.name)
           console.log(branches)
           if 'master' in branches
-            check_friction(github.getRepo(repo.owner.login, repo.name), 'master')
+            check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), 'master')
           else
-            check_friction(github.getRepo(repo.owner.login, repo.name), branches[0])
+            $("##{repo.id} > .branch").text(branches[0])
+            check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), branches[0])
     )
   else
     console.log('redirecting to oauth')
