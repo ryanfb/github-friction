@@ -1,7 +1,7 @@
 github-friction
 ===============
 
-![GitHub Friction Screenshot](http://i.imgur.com/3lwj66Um.png)
+![GitHub Friction Screenshot](http://i.imgur.com/3lwj66Ul.png)
 
 Check for common sources of contributor friction across your GitHub repositories.
 
