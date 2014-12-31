@@ -7,7 +7,7 @@
 
   github_friction_oauth = {
     client_id: 'f066b4cdf3404200113c',
-    redirect_uri: 'http://localhost:4000/'
+    redirect_uri: 'https://ryanfb.github.io/github-friction/'
   };
 
   github_oauth_url = function() {
