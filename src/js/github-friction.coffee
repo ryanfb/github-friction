@@ -130,6 +130,7 @@ mark_missing = (repo_id) ->
       link.attr('target','_blank')
       link.text(friction_check.name)
       data_cell.text('')
+      data_cell.append('\u2612 ')
       data_cell.append(link)
 
 mark_done = (repo_id, name, file_name) ->
@@ -140,10 +141,10 @@ mark_done = (repo_id, name, file_name) ->
   branch = $("##{repo_id} > .branch").text()
   link.attr('href',"#{repo_url}/blob/#{branch}/#{file_name}")
   link.attr('target','_blank')
-  link.text(data_cell.text())
+  link.text(data_cell.text().replace('\u2610 ',''))
   data_cell.text('')
+  data_cell.append('\u2611 ')
   data_cell.append(link)
-
 
 check_friction = (repo_id, repo, branch) ->
   console.log("check_friction for #{branch} of #{repo_id}") if github_friction_debug
@@ -200,7 +201,7 @@ build_github_friction = ->
         repo_row.append(repo_div)
         repo_row.append($('<td>').attr('class','active text-center').text('master').addClass('branch'))
         for name, friction_check of friction_checks
-          repo_row.append($('<td>').attr('class','info text-center').text(friction_check.name).addClass(name))
+          repo_row.append($('<td>').attr('class','info text-center').text('\u2610 ' + friction_check.name).addClass(name))
         $('#repo_list').append(repo_row)
         github.getRepo(repo.owner.login, repo.name).listBranches (err, branches) =>
           console.log(repo.name) if github_friction_debug
