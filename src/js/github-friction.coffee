@@ -205,7 +205,7 @@ build_github_friction = ->
     jumbotron = $('<div>') #.attr('class','jumbotron')
     jumbotron.append($('<h1>').text('GitHub Friction'))
     fork_button = $('<div>').attr('style','float:right;padding-right:1em')
-    fork_button.append('<iframe src="https://ghbtns.com/github-btn.html?user=ryanfb&repo=github-friction&type=fork&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="78" height="30"></iframe>')
+    fork_button.append('<iframe src="https://ryanfb.github.io/github-friction/github-btn.html?user=ryanfb&repo=github-friction&type=fork&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="78" height="30"></iframe>')
     jumbotron.append(fork_button)
     jumbotron.append($('<p>').attr('class','lead').text('Check for common sources of contributor friction across your GitHub repositories.'))
     container.append(jumbotron)
