@@ -141,7 +141,7 @@ mark_done = (repo_id, name, file_name) ->
   branch = $("##{repo_id} > .branch").text()
   link.attr('href',"#{repo_url}/blob/#{branch}/#{file_name}")
   link.attr('target','_blank')
-  link.text(data_cell.text().replace('\u2610 ',''))
+  link.text(data_cell.text().replace(/[\u2610\u2611] /,''))
   data_cell.text('')
   data_cell.append('\u2611 ')
   data_cell.append(link)
@@ -174,6 +174,27 @@ check_friction = (repo_id, repo, branch) ->
       console.log("no script directory for #{repo_id}") if github_friction_debug
       mark_missing(repo_id)
 
+add_repos = (github) ->
+  (err, repos) ->
+    repos.map (repo) ->
+      console.log(repo) if github_friction_debug
+      repo_row = $('<tr>').attr('id',repo.id)
+      repo_link = $('<a>').attr('href',repo.html_url).text(repo.full_name).attr('target','_blank')
+      repo_div = $('<td>').addClass('name').append(repo_link)
+      repo_row.append(repo_div)
+      repo_row.append($('<td>').attr('class','active text-center').text('master').addClass('branch'))
+      for name, friction_check of friction_checks
+        repo_row.append($('<td>').attr('class','info text-center').text('\u2610 ' + friction_check.name).addClass(name))
+      $('#repo_list').append(repo_row)
+      github.getRepo(repo.owner.login, repo.name).listBranches (err, branches) =>
+        console.log(repo.name) if github_friction_debug
+        console.log(branches) if github_friction_debug
+        if 'master' in branches
+          check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), 'master')
+        else
+          $("##{repo.id} > .branch").text(branches[0])
+          check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), branches[0])
+
 build_github_friction = ->
   console.log('build') if github_friction_debug
   if get_cookie 'access_token'
@@ -192,25 +213,10 @@ build_github_friction = ->
       auth: 'oauth'
     )
     user = github.getUser()
-    user.repos((err, repos) ->
-      repos.map (repo) ->
-        console.log(repo) if github_friction_debug
-        repo_row = $('<tr>').attr('id',repo.id)
-        repo_link = $('<a>').attr('href',repo.html_url).text(repo.full_name).attr('target','_blank')
-        repo_div = $('<td>').addClass('name').append(repo_link)
-        repo_row.append(repo_div)
-        repo_row.append($('<td>').attr('class','active text-center').text('master').addClass('branch'))
-        for name, friction_check of friction_checks
-          repo_row.append($('<td>').attr('class','info text-center').text('\u2610 ' + friction_check.name).addClass(name))
-        $('#repo_list').append(repo_row)
-        github.getRepo(repo.owner.login, repo.name).listBranches (err, branches) =>
-          console.log(repo.name) if github_friction_debug
-          console.log(branches) if github_friction_debug
-          if 'master' in branches
-            check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), 'master')
-          else
-            $("##{repo.id} > .branch").text(branches[0])
-            check_friction(repo.id, github.getRepo(repo.owner.login, repo.name), branches[0])
+    user.repos(add_repos(github))
+    user.orgs((err, orgs) ->
+      orgs.map (org) ->
+        user.orgRepos(org.login, add_repos(github))
     )
   else
     console.log('redirecting to oauth') if github_friction_debug
