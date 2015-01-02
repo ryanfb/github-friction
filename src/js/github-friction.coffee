@@ -6,6 +6,7 @@ github_friction_debug = false
 github_friction_oauth =
   client_id: 'f066b4cdf3404200113c'
   redirect_uri: 'https://ryanfb.github.io/github-friction/'
+  gatekeeper_uri: 'https://github-friction-gatekeeper.herokuapp.com/authenticate'
 
 github_oauth_url = ->
   "https://github.com/login/oauth/authorize?#{$.param(github_friction_oauth)}"
@@ -90,7 +91,8 @@ set_access_token_cookie = (params, callback) ->
   if params['code']?
     console.log('got code') if github_friction_debug
     # use gatekeeper to exchange code for token https://github.com/prose/gatekeeper
-    $.ajax "https://github-friction-gatekeeper.herokuapp.com/authenticate/#{params['code']}",
+    console.log(github_friction_oauth['gatekeeper_uri'])
+    $.ajax "#{github_friction_oauth['gatekeeper_uri']}/#{params['code']}",
       type: 'GET'
       dataType: 'json'
       crossDomain: 'true'
@@ -216,4 +218,5 @@ build_github_friction = ->
 # main driver entry point
 $(document).ready ->
   console.log('ready') if github_friction_debug
+  github_friction_oauth = $.extend({}, github_friction_oauth, window.github_friction_oauth)
   set_access_token_cookie(get_auth_code(),build_github_friction)
