@@ -1,3 +1,6 @@
+---
+---
+
 github_friction_debug = false
 
 github_friction_oauth =
